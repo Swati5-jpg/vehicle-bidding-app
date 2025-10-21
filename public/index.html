@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Vehicle Bidding App</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding:24px; background:#f7f8fb; color:#111; }
+    .container { max-width:760px; margin:0 auto; }
+    h1,h2 { margin-bottom:8px; }
+    form { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+    input, select, button { padding:10px 12px; font-size:16px; border-radius:6px; border:1px solid #d1d5db; }
+    button { background:#2563eb; color:white; border:none; cursor:pointer; }
+    button:disabled { opacity:0.6; cursor:default; }
+    .card { background:white; border-radius:10px; padding:18px; box-shadow:0 6px 20px rgba(13,18,30,0.06); margin-bottom:16px; }
+    .error { color:#b91c1c; background:#fee2e2; padding:12px; border-radius:8px; }
+    hr { margin:30px 0; border:0; border-top:1px solid #e5e7eb; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚗 Vehicle Bidding App</h1>
+
+    <!-- Search Vehicle -->
+    <h2>Search Vehicle by Registration</h2>
+    <form id="searchForm" onsubmit="return false;">
+      <input id="regnrInput" type="text" placeholder="Enter registration number (e.g. ABC123)" required />
+      <button id="searchBtn">Search</button>
+    </form>
+    <div id="results"></div>
+
+    <hr />
+
+    <!-- Add Vehicle -->
+    <h2>Add Vehicle</h2>
+    <form id="addForm" onsubmit="return false;">
+      <input id="reg" placeholder="Registration No" required />
+      <input id="make" placeholder="Make" required />
+      <input id="model" placeholder="Model" required />
+      <input id="version" placeholder="Version (optional)" />
+      <input id="date" type="date" placeholder="First Registration Date" />
+      <input id="mileage" type="number" placeholder="Mileage" />
+      <select id="valuation" required>
+        <option value="pending" selected>Pending</option>
+        <option value="received">Received</option>
+        <option value="done">Done</option>
+      </select>
+      <input id="amount" type="number" placeholder="Amount (SEK)" />
+      <button id="addBtn">Add Vehicle</button>
+    </form>
+
+    <hr />
+
+    <!-- Vehicle List -->
+    <h2>Available Vehicles</h2>
+    <div id="vehicleList"></div>
+  </div>
+
+<script>
+const API_BASE = "http://localhost:5001/api";
+
+function escapeHtml(s) {
+  if (!s && s !== 0) return '';
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// Add Vehicle
+document.getElementById("addBtn").addEventListener("click", async () => {
+  const regnr = document.getElementById("reg").value.trim();
+  const make = document.getElementById("make").value.trim();
+  const model = document.getElementById("model").value.trim();
+  const version = document.getElementById("version").value.trim();
+  const first_registration_date = document.getElementById("date").value;
+  const mileage = document.getElementById("mileage").value;
+  const valuation = document.getElementById("valuation").value;
+  const amount = parseFloat(document.getElementById("amount").value) || 0;
+
+  try {
+    const res = await fetch(`${API_BASE}/vehicles`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ regnr, make, model, version, first_registration_date, mileage, valuation, amount })
+    });
+    const data = await res.json();
+    alert(data.message || data.error);
+    document.getElementById("addForm").reset();
+    loadVehicles();
+  } catch(err) {
+    alert("Error adding vehicle: " + err.message);
+  }
+});
+
+// Load vehicles
+async function loadVehicles() {
+  const res = await fetch(`${API_BASE}/vehicles`);
+  const vehicles = await res.json();
+  const container = document.getElementById("vehicleList");
+  container.innerHTML = "";
+
+  vehicles.forEach(v => {
+    const valColor = v.valuation === "done" ? "green" : v.valuation === "received" ? "orange" : "gray";
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <strong>${escapeHtml(v.make)} ${escapeHtml(v.model)}</strong><br>
+      Reg No: ${escapeHtml(v.regnr)}<br>
+      Mileage: ${v.mileage || 0} km<br>
+      <span style="color:${valColor}; font-weight:600;">
+        Valuation: ${escapeHtml(v.valuation || "pending")}
+      </span><br>
+      Amount: ${v.amount || 0} SEK<br>
+      Highest Bid: ${v.highest_bid ? v.highest_bid + " SEK" : "0 SEK"}<br>
+      Bidder: Hidden (Dealer view)<br><br>
+      <input type="text" id="name-${v.id}" placeholder="Your name" />
+      <input type="number" id="bid-${v.id}" placeholder="Bid amount (SEK)" />
+      <button onclick="placeBid(${v.id})">Place Bid</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// Place bid
+async function placeBid(vehicleId) {
+  const bidderName = document.getElementById(`name-${vehicleId}`).value.trim();
+  const bidAmount = parseFloat(document.getElementById(`bid-${vehicleId}`).value);
+  if (!bidderName || isNaN(bidAmount) || bidAmount <= 0) {
+    alert("Please enter a valid name and bid amount.");
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/bid`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ vehicleId, bidderName, bidAmount })
+    });
+    const data = await res.json();
+    alert(data.message || data.error);
+    loadVehicles();
+  } catch(err) {
+    alert("Error placing bid: " + err.message);
+  }
+}
+
+// Initial load
+loadVehicles();
+</script>
+</body>
+</html>

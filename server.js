@@ -70,6 +70,12 @@ app.post("/api/bid", (req, res) => {
     });
   });
 });
+// Export app for Jest tests
+module.exports = app;
 
-// Start server
-app.listen(5001, () => console.log("🚀 Server running at http://localhost:5001"));
+// Start server only if run directly
+if (require.main === module) {
+  app.listen(5001, () => console.log("🚀 Server running at http://localhost:5001"));
+}
+
+

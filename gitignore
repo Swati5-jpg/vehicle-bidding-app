@@ -1,0 +1,49 @@
+# =====================
+# Node.js / JavaScript
+# =====================
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Build / Output
+dist/
+build/
+out/
+.nyc_output/
+coverage/
+*.tgz
+
+# Debug / Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+
+# Optional caches
+.cache/
+.next/
+.nuxt/
+.svelte-kit/
+storybook-static/
+.eslintcache
+.stylelintcache
+
+# Others
+*.tmp

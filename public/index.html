@@ -21,16 +21,6 @@
   <div class="container">
     <h1>🚗 Vehicle Bidding App</h1>
 
-    <!-- Search Vehicle -->
-    <h2>Search Vehicle by Registration</h2>
-    <form id="searchForm" onsubmit="return false;">
-      <input id="regnrInput" type="text" placeholder="Enter registration number (e.g. ABC123)" required />
-      <button id="searchBtn">Search</button>
-    </form>
-    <div id="results"></div>
-
-    <hr />
-
     <!-- Add Vehicle -->
     <h2>Add Vehicle</h2>
     <form id="addForm" onsubmit="return false;">
@@ -61,7 +51,13 @@ const API_BASE = "http://localhost:5001/api";
 
 function escapeHtml(s) {
   if (!s && s !== 0) return '';
-  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  return String(s).replace(/[&<>"']/g, m => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[m]));
 }
 
 // Add Vehicle
@@ -111,18 +107,18 @@ async function loadVehicles() {
       Amount: ${v.amount || 0} SEK<br>
       Highest Bid: ${v.highest_bid ? v.highest_bid + " SEK" : "0 SEK"}<br>
       Bidder: Hidden (Dealer view)<br><br>
-      <input type="text" id="name-${v.id}" placeholder="Your name" />
-      <input type="number" id="bid-${v.id}" placeholder="Bid amount (SEK)" />
-      <button onclick="placeBid(${v.id})">Place Bid</button>
+      <input type="text" id="name-${v.regnr}" placeholder="Your name" />
+      <input type="number" id="bid-${v.regnr}" placeholder="Bid amount (SEK)" />
+      <button onclick="placeBid('${v.regnr}')">Place Bid</button>
     `;
     container.appendChild(div);
   });
 }
 
-// Place bid
-async function placeBid(vehicleId) {
-  const bidderName = document.getElementById(`name-${vehicleId}`).value.trim();
-  const bidAmount = parseFloat(document.getElementById(`bid-${vehicleId}`).value);
+// Place bid by registration number
+async function placeBid(regnr) {
+  const bidderName = document.getElementById(`name-${regnr}`).value.trim();
+  const bidAmount = parseFloat(document.getElementById(`bid-${regnr}`).value);
   if (!bidderName || isNaN(bidAmount) || bidAmount <= 0) {
     alert("Please enter a valid name and bid amount.");
     return;
@@ -131,7 +127,7 @@ async function placeBid(vehicleId) {
     const res = await fetch(`${API_BASE}/bid`, {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ vehicleId, bidderName, bidAmount })
+      body: JSON.stringify({ regnr, bidderName, bidAmount })
     });
     const data = await res.json();
     alert(data.message || data.error);

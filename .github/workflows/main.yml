@@ -1,16 +1,47 @@
-name: Node CI
+name: Playwright Tests
 
 on:
   push:
+    branches: [ "main" ]
   pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: 18
-      - run: npm install
-      - run: npm test
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Start the application
+        run: npm start &
+        env:
+          PORT: 5001
+
+      - name: Wait for server to be ready
+        run: |
+          sudo apt-get install -y netcat
+          for i in {1..30}; do
+            if nc -z localhost 5001; then
+              echo "✅ Server is up"
+              break
+            fi
+            echo "⏳ Waiting for server..."
+            sleep 2
+          done
+
+      - name: Run Playwright Tests
+        run: npm test
